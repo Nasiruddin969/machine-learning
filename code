@@ -1,0 +1,192 @@
+from google.colab import drive
+drive.mount('/content/drive')
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+messages = pd.read_csv("/content/drive/MyDrive/spam.csv", encoding = "ISO-8859-1", usecols=['v1', 'v2'])
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(messages['v2'], messages['v1'], test_size=0.3,random_state = 42)
+
+def convert_to_dict_counter(X):
+    temp_dict = {}
+    output_X = []
+    for text in X:
+        for word in text.split():
+             temp_dict[word] = temp_dict.get(word, 0) + 1
+        output_X.append(temp_dict)
+        temp_dict = {}
+    return np.array(output_X)
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+
+#Pipeline
+from sklearn.pipeline import Pipeline
+text_transf = Pipeline([
+    ('vect', CountVectorizer()),
+    ('tfidf', TfidfTransformer()),
+    ])
+X__train_transformed = text_transf.fit_transform(X_train)
+
+from sklearn.model_selection import cross_val_score
+
+scores = []
+
+#Naive Bayes
+from sklearn.naive_bayes import MultinomialNB
+clf_nb = MultinomialNB()
+print("\nMultinomial Naive Bayes: ")
+score = cross_val_score(clf_nb, X__train_transformed, y_train, cv=3, verbose=3)
+scores.append(score.mean())
+
+#Logistic Regression
+from sklearn.linear_model import LogisticRegression
+clf_log = LogisticRegression(solver="lbfgs", random_state=42)
+print("\nLogistic Regression: ")
+score = cross_val_score(clf_log, X__train_transformed, y_train, cv=3, verbose=3)
+scores.append(score.mean())
+#Decision tree
+from sklearn import tree
+clf_dt = tree.DecisionTreeClassifier()
+print("\nDecision tree: ")
+score = cross_val_score(clf_dt, X__train_transformed, y_train, cv=3, verbose=3)
+scores.append(score.mean())
+
+#K-Nearest Neighbours
+from sklearn.neighbors import KNeighborsClassifier
+clf_kn = KNeighborsClassifier(n_neighbors=3)
+print("\nK-Nearest Neighbours: ")
+score = cross_val_score(clf_kn, X__train_transformed, y_train, cv=3, verbose=3)
+scores.append(score.mean())
+
+#Random Forest
+from sklearn.ensemble import RandomForestClassifier
+clf_rf = RandomForestClassifier(max_depth=15, random_state=42)
+print("\nRandom Forest: ")
+score = cross_val_score(clf_rf, X__train_transformed, y_train, cv=3, verbose=3)
+scores.append(score.mean())
+def plot_model_comp():
+    colors = np.random.rand(5)
+    my_xticks = ['Multinomial Naive Bayes','Logistic Regression','Decision tree','K-Nearest Neighbours', 'Random Forest']
+    #plt.rcParams["figure.figsize"] = (10,10)
+    fig4 = plt.figure(figsize=(10,10))
+    plt.stem([0,1,2,3,4], scores, markerfmt=' ', linefmt='grey')
+    plt.xticks([0,1,2,3,4], my_xticks)
+    plt.scatter([0,1,2,3,4], scores, c=colors, alpha=0.5, s=100)
+    plt.grid(color = 'grey', linestyle = '--', linewidth = 0.5)
+    plt.ylim(0.8, 1) 
+print(np.array(scores))
+plot_model_comp()
+    
+
+from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve
+from sklearn.linear_model import LogisticRegression
+
+"""
+X_test_dict = convert_to_dict_counter(X_test)
+X_test_transform = sparse_vector_transf.fit_transform(X_test_dict)
+"""
+
+
+X_test_transform = text_transf.transform(X_test)
+
+clf_nb.fit(X__train_transformed, y_train)
+clf_log.fit(X__train_transformed, y_train)
+clf_dt.fit(X__train_transformed, y_train)
+clf_kn.fit(X__train_transformed, y_train)
+clf_rf.fit(X__train_transformed, y_train)
+y_pred_nb = clf_nb.predict(X_test_transform)
+y_pred_log = clf_log.predict(X_test_transform)
+y_pred_dt = clf_dt.predict(X_test_transform)
+y_pred_kn = clf_kn.predict(X_test_transform)
+y_pred_rf = clf_rf.predict(X_test_transform)
+
+"""
+print("\nMultinomial Naive Bayes: ")
+print("\nLogistic Regression: ")
+print("\nDecision tree: ")
+print("\nK-Nearest Neighbours: ")
+print("\nRandom Forest: ")
+"""
+print("\nMultinomial Naive Bayes: ")
+print(f"Precision: {100 * precision_score(y_test, y_pred_nb, pos_label='spam')}")
+print(f"Recall: {100 * recall_score(y_test, y_pred_nb, pos_label='spam')}")
+print(f"F1_score: {100 * f1_score(y_test, y_pred_nb, pos_label='spam')}")
+print("\nLogistic Regression: ")
+print(f"Precision: {100 * precision_score(y_test, y_pred_log, pos_label='spam')}")
+print(f"Recall: {100 * recall_score(y_test, y_pred_log, pos_label='spam')}")
+print(f"F1_score: {100 * f1_score(y_test, y_pred_log, pos_label='spam')}")
+print("\nDecision tree: ")
+print(f"Precision: {100 * precision_score(y_test, y_pred_dt, pos_label='spam')}")
+print(f"Recall: {100 * recall_score(y_test, y_pred_dt, pos_label='spam')}")
+print(f"F1_score: {100 * f1_score(y_test, y_pred_dt, pos_label='spam')}")
+print("\nK-Nearest Neighbours: ")
+print(f"Precision: {100 * precision_score(y_test, y_pred_kn, pos_label='spam')}")
+print(f"Recall: {100 * recall_score(y_test, y_pred_kn, pos_label='spam')}")
+print(f"F1_score: {100 * f1_score(y_test, y_pred_kn, pos_label='spam')}")
+print("\nRandom Forest: ")
+print(f"Precision: {100 * precision_score(y_test, y_pred_rf, pos_label='spam')}")
+print(f"Recall: {100 * recall_score(y_test, y_pred_rf, pos_label='spam')}")
+print(f"F1_score: {100 * f1_score(y_test, y_pred_rf, pos_label='spam')}")
+
+from sklearn.metrics import precision_recall_curve, roc_curve
+
+y_pred_nb_prob = clf_nb.predict_proba(X_test_transform)
+y_pred_nb_prob = y_pred_nb_prob[:,1]
+nb_precision, nb_recall, nb_threshold = precision_recall_curve(y_test, y_pred_nb_prob, pos_label='spam')
+
+y_pred_log_prob = clf_log.predict_proba(X_test_transform)
+y_pred_log_prob = y_pred_log_prob[:,1]
+log_precision, log_recall, log_threshold = precision_recall_curve(y_test, y_pred_log_prob, pos_label='spam')
+
+y_pred_dt_prob = clf_dt.predict_proba(X_test_transform)
+y_pred_dt_prob = y_pred_dt_prob[:,1]
+dt_precision, dt_recall, dt_threshold = precision_recall_curve(y_test, y_pred_dt_prob, pos_label='spam')
+
+y_pred_rf_prob = clf_rf.predict_proba(X_test_transform)
+y_pred_rf_prob = y_pred_rf_prob[:,1]
+rf_precision, rf_recall, rf_threshold = precision_recall_curve(y_test, y_pred_rf_prob, pos_label='spam')
+
+def plot_precision_vs_recall():
+    fig2 = plt.figure(figsize=(20,10))
+    plt.subplot(2, 2, 1)
+    plt.plot(nb_recall, nb_precision, color = "mediumseagreen", linewidth=2)
+    plt.grid(True)
+    plt.xlabel("recall")
+    plt.ylabel("precision")
+    plt.title("Multinomial Naive Bayes")
+    plt.subplot(2, 2, 2)
+    plt.plot(log_recall, log_precision, color = "sandybrown", linewidth=2)
+    plt.xlabel("recall",)
+    plt.ylabel("precision")
+    plt.grid(True)
+    plt.title("Logistic Regression")
+    plt.subplot(2, 2, 3)
+    plt.plot(dt_recall, dt_precision, color = "darkorchid", linewidth=2)
+    plt.xlabel("recall",)
+    plt.ylabel("precision")
+    plt.grid(True)
+    plt.title("Decision tree")
+    plt.subplot(2, 2, 4)
+    plt.plot(rf_recall, rf_precision, color = "royalblue", linewidth=2)
+    plt.xlabel("recall",)
+    plt.ylabel("precision")
+    plt.grid(True)
+    plt.title("Random Forest")
+    plt.subplots_adjust(
+                    wspace=0.4, 
+                    hspace=0.4)
+    
+plot_precision_vs_recall()
+
+fig3 = plt.figure(figsize=(7,9))
+plt.plot(nb_recall, nb_precision,  color = "mediumseagreen", linewidth=2)
+plt.plot(log_recall, log_precision, color = "sandybrown", linewidth=2)
+plt.plot(dt_recall, dt_precision, color = "darkorchid", linewidth=2)
+plt.plot(rf_recall, rf_precision, color = "royalblue", linewidth=2)
+plt.xlabel("recall",)
+plt.ylabel("precision")
+plt.grid(True)
+plt.title("All in One")
+plt.legend(["Multinomial Naive Bayes", "Logistic Regression", "Decision tree","Random Forest"], loc="lower left")
